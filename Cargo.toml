@@ -1,0 +1,9 @@
+[package]
+name = "proofhouse-rust-tool"
+version = "0.0.0"
+edition = "2024"
+rust-version = "1.96"
+description = "Reference CLI for the Proofhouse Rust tool reference repository"
+authors = ["Tony Burns <tony@tonyburns.net>"]
+license = "Apache-2.0"
+publish = false
