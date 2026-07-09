@@ -43,6 +43,50 @@ default: test
 build:
     cargo build --release
 
+# Check that release builds are reproducible: copy the working tree
+# (minus .git and target; the untracked Cargo.lock rides along) into two
+# separate temp dirs, build each with identical flags, and compare the
+# sha256 of the two binaries, failing on any mismatch.
+#
+# Building from two different paths — not twice in the same one — is what
+# makes this stronger than a same-dir double build. It catches absolute
+# build and registry paths leaking into the binary: rustc embeds
+# $CARGO_HOME/registry/... in dependency panic messages by default. The
+# --remap-path-prefix pair rewrites this checkout's path to /build and
+# the cargo home to /cargo, and --remap-path-scope=object confines the
+# rewrite to emitted objects; the scope flag is stable since 1.95.
+# Cargo's own trim-paths profile key would subsume these flags but is
+# still nightly (cargo#12137) — migrate to it once it stabilizes.
+#
+# Excluding .git drops both builds onto the buildmeta fallback (empty
+# commit, "unknown" date) instead of a stamped value; that is identical
+# across the two trees, which is exactly what the comparison needs.
+# SOURCE_DATE_EPOCH is exported for parity with the sibling repos; rustc
+# ignores it on Linux and macOS today, so it only guards against future
+# timestamp stamping.
+[script]
+build-repro-check:
+    src="$PWD"
+    dir_a=$(mktemp -d)
+    dir_b=$(mktemp -d)
+    trap 'rm -rf "$dir_a" "$dir_b"' EXIT
+    for dir in "$dir_a" "$dir_b"; do
+        rsync -a --exclude=.git --exclude=target "$src"/ "$dir"/
+        (
+            cd "$dir"
+            RUSTFLAGS="--remap-path-prefix=$PWD=/build --remap-path-prefix=${CARGO_HOME:-$HOME/.cargo}=/cargo --remap-path-scope=object" \
+            CARGO_INCREMENTAL=0 SOURCE_DATE_EPOCH={{ source_date_epoch }} \
+            cargo build --release --locked
+        )
+    done
+    sum_a=$(shasum -a 256 < "$dir_a/target/release/proofhouse-rust-tool")
+    sum_b=$(shasum -a 256 < "$dir_b/target/release/proofhouse-rust-tool")
+    if [[ "$sum_a" != "$sum_b" ]]; then
+        echo "build not reproducible: binary differs between runs" >&2
+        exit 1
+    fi
+    echo "reproducible: ${sum_a%% *}"
+
 # Run the binary
 run *args:
     cargo run -- "$@"
