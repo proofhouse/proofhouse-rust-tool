@@ -4,3 +4,4 @@
 //! Library crate backing the proofhouse-rust-tool reference CLI.
 
 pub mod buildmeta;
+pub mod cli;
