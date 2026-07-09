@@ -106,3 +106,13 @@ test *args:
 # CI job to stay covered.
 test-doc:
     cargo test --doc
+
+# --- Dependencies ---
+
+# Fail when Cargo.lock is missing or drifts from Cargo.toml. cargo
+# metadata under the locked flag refuses to rewrite the lock, so a stale
+# or absent one exits non-zero here instead of being regenerated behind
+# the contributor's back. CI runs it on every PR; contributors commit
+# the refreshed lock.
+lock-check:
+    cargo metadata --locked --format-version 1 > /dev/null
