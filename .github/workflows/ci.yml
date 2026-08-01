@@ -186,10 +186,24 @@ jobs:
       - name: Set up just
         uses: proofhouse/github-actions/.github/actions/setup-just@131c527df05799916f98d8c4b26eb225dbfc7845 # v0.4.0
 
-      - name: Run tests
-        run: just test
+      # The test runner publishes a build for every platform in the
+      # matrix, and the action checks each download against the SHA256
+      # the release carries before unpacking it. Renovate owns the
+      # version, reading it from the marker comment on the line above.
+      - name: Install cargo tools
+        uses: taiki-e/install-action@6a1bd70eaac3c8bdf093356838d7ee09fda951cf # v2.85.5
+        with:
+          # renovate: datasource=crate depName=cargo-nextest
+          tool: cargo-nextest@0.9.140
 
-      # Doctests are their own recipe because the test runner this
-      # project moves to later does not run them.
+      # The ci profile in .config/nextest.toml runs past the first
+      # failure and writes a JUnit report. Naming it on the command line
+      # rather than through an environment variable keeps the choice
+      # visible in the step's own log.
+      - name: Run tests
+        run: just test --profile ci
+
+      # Doctests are their own recipe because the test runner has no way
+      # to reach them.
       - name: Run doctests
         run: just test-doc
