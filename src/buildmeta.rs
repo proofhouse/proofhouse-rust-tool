@@ -65,7 +65,7 @@ mod tests {
 
         assert!(
             info.commit.is_empty()
-                || (info.commit.len() == 7 && info.commit.chars().all(|c| c.is_ascii_hexdigit())),
+                || (info.commit.len() == 7 && info.commit.chars().all(|ch| ch.is_ascii_hexdigit())),
             "commit must be empty or 7 hex chars, got {:?}",
             info.commit
         );

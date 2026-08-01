@@ -190,13 +190,13 @@ lock-check:
 # --- Lint ---
 
 # Aggregator over the Rust-flavored lint sub-recipes: the rustfmt drift
-# check and actionlint. Kept apart from `lint` so someone iterating on
-# the crate can run the source-side gates without waiting on the whole
-# text-quality toolchain. Each new gate of that kind appends itself
-# here. actionlint reads YAML rather than Rust, but it belongs to the
-# same per-PR set, in the slot the Go repository gives it inside
-# `lint-go-all`.
-lint-rs-all: lint-rs-format lint-workflows
+# check, clippy, and actionlint. Kept apart from `lint` so someone
+# iterating on the crate can run the source-side gates without waiting
+# on the whole text-quality toolchain. Each new gate of that kind
+# appends itself here. actionlint reads YAML rather than Rust, but it
+# belongs to the same per-PR set, in the slot the Go repository gives
+# it inside `lint-go-all`.
+lint-rs-all: lint-rs-format lint-clippy lint-workflows
 
 # Aggregate lint gate. One entry point for contributors and CI, gaining a
 # dependency as each gate lands. Today it carries the Rust gates (via
@@ -212,6 +212,15 @@ lint: lint-rs-all lint-prose lint-spelling lint-markdown lint-config lint-yaml l
 # lint-toml and format-toml use.
 lint-rs-format:
     cargo fmt --check
+
+# Run clippy over the crate. The lint set lives in Cargo.toml and the
+# counting thresholds in clippy.toml; this recipe only decides what gets
+# compiled and how loud a finding is. --all-targets reaches the test and
+# build-script code a bare run skips, --all-features leaves no gated
+# module unread, and -D warnings makes every enabled lint a failure
+# rather than a note nobody sees.
+lint-clippy:
+    cargo clippy --all-targets --all-features -- -D warnings
 
 # Check prose with vale against the styles in .vale.ini. The glob
 # excludes the LICENSE (canonical Apache 2.0 text), the auto-generated

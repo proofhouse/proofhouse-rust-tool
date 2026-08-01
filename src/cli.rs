@@ -47,9 +47,17 @@ pub fn run(cli: &Cli, out: &mut impl io::Write) -> io::Result<()> {
     }
 }
 
+// A test asserts what it expects and stops at the first surprise, so
+// unwrapping through expect and reaching a line by index is the point
+// rather than a hazard. Production code answers to both lints.
 #[cfg(test)]
+#[expect(
+    clippy::expect_used,
+    clippy::indexing_slicing,
+    reason = "a failed assumption in a test should end the test"
+)]
 mod tests {
-    use clap::Parser;
+    use clap::Parser as _;
     use clap::error::ErrorKind;
 
     use super::{Cli, run};

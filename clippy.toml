@@ -1,0 +1,17 @@
+# Thresholds for the clippy lints that count instead of pattern-match.
+# Cargo.toml turns those lints on; clippy reads their numbers only from
+# this file, so the two halves of each gate sit apart by design.
+
+# Cognitive complexity ceiling per function. Sonar published 15, and the
+# sibling repositories hand the same number to complexipy and gocognit.
+cognitive-complexity-threshold = 15
+
+# Four levels of nesting is where a function stops reading top to
+# bottom. Past that an early return or an extracted helper costs less
+# than the indentation.
+excessive-nesting-threshold = 4
+
+# A hundred lines per function, matching what the Go repository gives
+# funlen. Test modules count too, which is deliberate: a test that long
+# has stopped testing one thing.
+too-many-lines-threshold = 100

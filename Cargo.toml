@@ -9,3 +9,83 @@ publish = false
 
 [dependencies]
 clap = { version = "4.6.1", features = ["derive"] }
+
+# Compiler lints. These two fill the slot vulture holds in the Python
+# repositories and deadcode holds in the Go one: an item nothing reaches
+# fails the build rather than accumulating quietly. Unused dependencies
+# answer to a different tool and arrive with their own gate.
+[lints.rust]
+dead_code = "deny"
+unreachable_pub = "deny"
+
+[lints.clippy]
+# Every group at warn, with the lint recipe passing -D warnings to turn
+# the set into errors. Taking restriction alongside the rest reads the
+# way `select = ALL` reads in the Python repositories: start from
+# everything clippy knows, then subtract deliberately. Priority -1 keeps
+# the groups underneath the named entries below.
+#
+# Cargo's lints table has no `reason` key — 1.97 reports one as an
+# unused manifest key — so each subtraction states its case in a
+# comment, the shape the ruff ignore list already uses.
+all = { level = "warn", priority = -1 }
+pedantic = { level = "warn", priority = -1 }
+nursery = { level = "warn", priority = -1 }
+cargo = { level = "warn", priority = -1 }
+restriction = { level = "warn", priority = -1 }
+
+# Restriction has carried this one since 1.91, so the group above
+# already enables it. Naming it anyway keeps the threshold that governs
+# it, over in clippy.toml, discoverable from the manifest.
+cognitive_complexity = "warn"
+
+# Suppressions have to say why they exist, and #[expect] fails once the
+# lint it names stops firing. A suppression that outlives its cause
+# then surfaces as a build error instead of sitting there unread.
+allow_attributes = "deny"
+allow_attributes_without_reason = "deny"
+
+# Enabling restriction as a group is precisely what the block above
+# does, and this lint objects to it. Reading that group as a menu
+# rather than a recommendation is the choice being made here.
+blanket_clippy_restriction_lints = "allow"
+
+# Writing `return` on a trailing expression is what needless_return in
+# the style group rejects. Both cannot hold, and the one the compiler
+# and the wider ecosystem agree on wins.
+implicit_return = "allow"
+
+# The question mark operator is how errors travel through this crate.
+question_mark_used = "allow"
+
+# A helper with a single caller earns its keep from what its name
+# explains. Folding it back would trade that away for nothing.
+single_call_fn = "allow"
+
+# Test modules sit inside the file they exercise, the layout the Rust
+# book teaches and the ecosystem follows.
+inline_modules = "allow"
+
+# BuildInfo is a record consumers read field by field, with no
+# invariant to guard. Marking it non_exhaustive would demand a
+# constructor and accessors for values that are already public.
+exhaustive_structs = "allow"
+
+# Items appear in the order that explains them. BuildInfo lists its
+# fields in the order the version subcommand prints them, and
+# alphabetical order would scramble that.
+arbitrary_source_item_ordering = "allow"
+
+# Nothing links against this crate. The binary is its only consumer,
+# and within one crate graph the code generator decides what to inline.
+missing_inline_in_public_items = "allow"
+
+# `impl Trait` in argument position is ordinary Rust, and the writer
+# the command surface accepts never needs naming at a call site.
+impl_trait_in_params = "allow"
+
+# Modules live one per file, with no directory carrying the name of the
+# file beside it. The sibling lint mod_module_files stays on and catches
+# any mod.rs that appears later; keeping both would leave no legal
+# layout at all.
+self_named_module_files = "allow"
