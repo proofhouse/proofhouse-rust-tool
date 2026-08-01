@@ -5,8 +5,12 @@ binstall
 buildmeta
 cocogitto
 commitlint
+complexipy
+deadcode
 doctests
 EDITMSG
+funlen
+gocognit
 GOPATH
 goreleaser
 hardwrap

@@ -154,3 +154,8 @@ Brewfile
 [Rr]ustup('s)?
 [Ee]ditorconfig
 rustfmt
+[Cc]lippy
+complexipy
+gocognit
+funlen
+[Ss]uppression[s]?

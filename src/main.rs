@@ -3,10 +3,10 @@
 
 //! Reference CLI for the Proofhouse Rust tool reference repository.
 
-use std::io::{self, Write};
+use std::io::{self, Write as _};
 use std::process::ExitCode;
 
-use clap::Parser;
+use clap::Parser as _;
 
 use proofhouse_rust_tool::cli::{self, Cli};
 
@@ -16,6 +16,12 @@ fn main() -> ExitCode {
     match cli::run(&cli, &mut out) {
         Ok(()) => ExitCode::SUCCESS,
         Err(err) => {
+            // A write to stderr that itself fails leaves nowhere to report
+            // the failure, so the result goes unread on purpose.
+            #[expect(
+                clippy::let_underscore_must_use,
+                reason = "the exit code already carries the failure"
+            )]
             let _ = writeln!(io::stderr(), "proofhouse-rust-tool: {err}");
             ExitCode::FAILURE
         }

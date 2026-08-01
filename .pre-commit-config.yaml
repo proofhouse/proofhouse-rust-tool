@@ -103,6 +103,20 @@ repos:
         types: [rust]
         pass_filenames: false
 
+      # Held back to the push stage. Clippy compiles the crate and every
+      # dependency it reads, so a cold cache turns one commit into a
+      # multi-minute wait, and formatting is the only thing a commit
+      # should have to survive. always_run because a lint level in
+      # Cargo.toml or a threshold in clippy.toml changes the verdict on
+      # source files the commit never touched.
+      - id: clippy
+        name: clippy
+        entry: just lint-clippy
+        language: system
+        stages: [pre-push]
+        always_run: true
+        pass_filenames: false
+
       # Whitespace conventions from .editorconfig. The builtin
       # end-of-file-fixer / mixed-line-ending / trailing-whitespace
       # hooks above cover part of the same ground with fixed rules;
