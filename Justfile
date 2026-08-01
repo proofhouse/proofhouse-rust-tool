@@ -121,8 +121,8 @@ lock-check:
 
 # Aggregate lint gate. One entry point for contributors and CI, gaining a
 # dependency as each gate lands. Today it carries prose (vale), spelling
-# (cspell), and TOML (tombi).
-lint: lint-prose lint-spelling lint-toml
+# (cspell), Markdown (rumdl), and TOML (tombi).
+lint: lint-prose lint-spelling lint-markdown lint-toml
 
 # Check prose with vale against the styles in .vale.ini. The glob
 # excludes the LICENSE (canonical Apache 2.0 text), the auto-generated
@@ -146,6 +146,12 @@ lint-prose *args:
 lint-spelling *args:
     cspell --config .cspell.jsonc --no-summary --no-progress --no-must-find-files --exclude COMMIT_AGENTMSG {{ if args == "" { "." } else { args } }}
 
+# Lint Markdown files against the project's .rumdl.toml ruleset.
+# rumdl handles structural lints (heading style, list marker style,
+# code fence style); vale handles prose.
+lint-markdown *args:
+    rumdl check {{ if args == "" { "." } else { args } }}
+
 # tombi is the org TOML gate (tombi 1.2.0): lint-checks Cargo.toml (validated offline
 # against the embedded SchemaStore cargo.json), rust-toolchain.toml, .cargo/config.toml,
 # and workspace member manifests. Format gate runs in --check --diff so unformatted TOML
@@ -158,13 +164,27 @@ lint-toml:
 
 # --- Format ---
 
-# Aggregate in-place formatter. Grows per gate; carries the TOML fixer today.
-format: format-toml
+# Aggregate in-place formatter. Grows per gate; carries the Markdown and
+# TOML fixers today.
+format: format-markdown format-toml
+
+# Format Markdown files (whitespace, list markers, code fence styles).
+# Rewrites in place. Pair with `fix-markdown` for semantic lint fixes.
+format-markdown *args:
+    rumdl fmt {{ if args == "" { "." } else { args } }}
 
 # In-place TOML formatter — fixer paired with lint-toml's --check gate. Whitespace/style
 # only; key order preserved (reordering disabled in tombi.toml).
 format-toml:
     tombi format
+
+# --- Fix ---
+
+# Apply rumdl's auto-fixable rules to Markdown files. Complement to
+# `format-markdown` (which only rewrites whitespace and ordering, not
+# semantic lints).
+fix-markdown *args:
+    rumdl check --fix {{ if args == "" { "." } else { args } }}
 
 # --- Utilities ---
 
