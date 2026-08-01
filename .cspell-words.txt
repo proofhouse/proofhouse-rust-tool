@@ -11,7 +11,9 @@ GOPATH
 goreleaser
 hardwrap
 hexdigit
+linuxbrew
 lockfiles
+matrixed
 mktemp
 pipefail
 prek
@@ -19,6 +21,7 @@ proofhouse
 pyproject
 rumdl
 RUSTFLAGS
+Swatinem
 tbhb
 tmpl
 tombi
