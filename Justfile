@@ -196,13 +196,13 @@ lock-check:
 
 # Aggregator over the Rust-flavored lint sub-recipes: the rustfmt drift
 # check, clippy, the documentation build, the unused-dependency scan,
-# the duplication scan, and actionlint. Kept apart from `lint` so
-# someone iterating on the crate can run the source-side gates without
-# waiting on the whole text-quality toolchain. Each new gate of that
-# kind appends itself here. actionlint reads YAML rather than Rust, but
-# it belongs to the same per-PR set, in the slot the Go repository
-# gives it inside `lint-go-all`.
-lint-rs-all: lint-rs-format lint-clippy lint-docs lint-machete lint-dup-code lint-workflows
+# the duplication scan, the license declaration check, and actionlint.
+# Kept apart from `lint` so someone iterating on the crate can run the
+# source-side gates without waiting on the whole text-quality
+# toolchain. Each new gate of that kind appends itself here. actionlint
+# reads YAML rather than Rust, but it belongs to the same per-PR set,
+# in the slot the Go repository gives it inside `lint-go-all`.
+lint-rs-all: lint-rs-format lint-clippy lint-docs lint-machete lint-dup-code lint-reuse lint-workflows
 
 # Aggregate lint gate. One entry point for contributors and CI, gaining a
 # dependency as each gate lands. Today it carries the Rust gates (via
@@ -268,8 +268,20 @@ lint-machete:
 lint-dup-code:
     jscpd --no-tips .
 
+# Confirm every tracked file names a copyright holder and a license,
+# whether through the two-line header each Rust source opens with or
+# through a bulk annotation in REUSE.toml. The canonical license text
+# lives under LICENSES/, which is where reuse looks for it. Turning off
+# the per-file process pool costs nothing on a tree of this size, where
+# spawning it takes longer than the scan it parallelizes, and the
+# serial path still answers inside sandboxes that refuse a process the
+# semaphores a pool wants.
+lint-reuse:
+    reuse --no-multiprocessing lint
+
 # Check prose with vale against the styles in .vale.ini. The glob
-# excludes the LICENSE (canonical Apache 2.0 text), the auto-generated
+# excludes both copies of the canonical Apache 2.0 text (the root
+# LICENSE and the LICENSES/ directory reuse reads), the auto-generated
 # changelog, vale's own style packages, scratch dirs, the gitignored
 # agent worktrees under .claude/worktrees/, the COMMIT_AGENTMSG draft
 # (whose own recipe checks it under the stricter commit scope), and the
@@ -278,7 +290,7 @@ lint-dup-code:
 # template from the proofhouse package: one machine-parseable line per
 # finding.
 lint-prose *args:
-    vale --output=proofhouse-agent.tmpl --glob='!{LICENSE,CHANGELOG.md,.vale/*,tmp/*,.claude/worktrees/*,COMMIT_AGENTMSG,target/*}' {{ if args == "" { "." } else { args } }}
+    vale --output=proofhouse-agent.tmpl --glob='!{LICENSE,LICENSES/*,CHANGELOG.md,.vale/*,tmp/*,.claude/worktrees/*,COMMIT_AGENTMSG,target/*}' {{ if args == "" { "." } else { args } }}
 
 # Check spelling across the tree against the project dictionary at
 # .cspell-words.txt, backed by cspell's bundled Rust word list and its
@@ -338,10 +350,11 @@ lint-just:
 # .editorconfig-checker.json repeats the Vale exclusion for the case
 # where a caller names paths explicitly, mirroring the top-level
 # `exclude:` in .pre-commit-config.yaml, and adds CHANGELOG.md, which
-# `cog changelog` regenerates wholesale. Upstream's release archives
-# also ship a short `ec` alias, but the Homebrew formula the Brewfile
-# provisions from builds the long name only, so the recipe spells it
-# out.
+# `cog changelog` regenerates wholesale, and LICENSES/, whose contents
+# are upstream license text nobody here may reflow. Upstream's release
+# archives also ship a short `ec` alias, but the Homebrew formula the
+# Brewfile provisions from builds the long name only, so the recipe
+# spells it out.
 lint-editorconfig:
     editorconfig-checker
 

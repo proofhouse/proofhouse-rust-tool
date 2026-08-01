@@ -151,6 +151,18 @@ repos:
         types: [rust]
         pass_filenames: false
 
+      # The header on a Rust source is a two-line comment, and nothing
+      # so far has read it. reuse does, and it asks the same question
+      # of every other tracked file as well, whether or not that file
+      # holds code. New files are where the answer goes missing, and
+      # any kind of file can be the new one, so this hook takes no
+      # filter and no filenames.
+      - id: reuse
+        name: reuse lint
+        entry: just lint-reuse
+        language: system
+        pass_filenames: false
+
       # Whitespace conventions from .editorconfig. The builtin
       # end-of-file-fixer / mixed-line-ending / trailing-whitespace
       # hooks above cover part of the same ground with fixed rules;
