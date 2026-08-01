@@ -1,11 +1,15 @@
 AGENTMSG
+autostash
+backticked
 binstall
 buildmeta
 cocogitto
+commitlint
 doctests
 EDITMSG
 GOPATH
 goreleaser
+hardwrap
 hexdigit
 lockfiles
 mktemp
@@ -18,5 +22,8 @@ RUSTFLAGS
 tbhb
 tmpl
 tombi
+Tricolon
 venv
+worktree
 worktrees
+yamllintignore
