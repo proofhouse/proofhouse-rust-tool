@@ -250,6 +250,18 @@ lint-docs:
 lint-machete:
     cargo machete
 
+# Report dependencies the compiler never loads. cargo udeps builds every
+# target and then asks rustc which of the resolved crates it actually
+# read, so the answer covers what a text scan has no way to see: a crate
+# named only from inside a macro expansion, or one behind a feature gate
+# the scan leaves off. Paying for that answer takes a full build on a
+# nightly compiler, because the flag the tool reads is unstable. Nothing
+# a merge waits on may depend on nightly, so this recipe stays out of
+# lint-rs-all and runs on a schedule instead; lint-machete above holds
+# the pull request side of the same question.
+lint-udeps:
+    cargo +nightly udeps --all-targets
+
 # Report code that appears more than once. jscpd hashes a sliding
 # window of tokens rather than lines, so renaming the identifiers in a
 # copy or reflowing its layout does not hide it. The window is fifty
