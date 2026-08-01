@@ -127,6 +127,18 @@ repos:
         stages: [pre-push]
         pass_filenames: false
 
+      # Scoped to the manifest, where a dependency enters the tree and
+      # where the fix for a finding goes. Dropping the last use of a
+      # crate from a source file strands it as well, and CI reads that
+      # case on the pull request. Nothing compiles here, so the hook is
+      # cheap enough to stay on the commit path.
+      - id: cargo-machete
+        name: cargo-machete
+        entry: just lint-machete
+        language: system
+        files: (^|/)Cargo\.toml$
+        pass_filenames: false
+
       # Whitespace conventions from .editorconfig. The builtin
       # end-of-file-fixer / mixed-line-ending / trailing-whitespace
       # hooks above cover part of the same ground with fixed rules;
