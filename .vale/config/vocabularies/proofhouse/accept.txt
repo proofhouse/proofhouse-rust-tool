@@ -168,3 +168,4 @@ JUnit
 [Dd]octests?
 lcov
 [Tt]racefiles?
+msrv

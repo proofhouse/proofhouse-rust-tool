@@ -21,6 +21,7 @@ linuxbrew
 lockfiles
 matrixed
 mktemp
+msrv
 nextest
 orbstack
 osxkeychain
