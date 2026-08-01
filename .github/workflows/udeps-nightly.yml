@@ -1,0 +1,79 @@
+---
+# Scheduled unused-dependency sweep. cargo-udeps compiles every target
+# and reads back which of the resolved crates rustc actually loaded, so
+# it answers for the cases the per-commit manifest scan cannot reach: a
+# crate named only from inside a macro expansion, or one behind a
+# feature gate a text scan never turns on. A full build under a nightly
+# compiler is the price, which is why the sweep runs here on a clock
+# rather than on the pull request path where `cargo machete` sits.
+#
+# The toolchain input floats on nightly instead of naming a date. No
+# dependency manager tracks a dated nightly written into a workflow
+# input, so a pin here would rot unwatched; a floating nightly that
+# breaks turns up the next morning as a red run in a lane no merge
+# waits on. Nothing here blocks a merge at all — a finding on this
+# schedule is something to go read, not a gate that has closed.
+
+name: udeps-nightly
+
+on:
+  schedule:
+    # 05:43 UTC nightly. Off-peak, off the top of the hour, and on a
+    # minute no other schedule in this repository or its siblings
+    # claims, so the sweep never queues behind another repository's
+    # nightly job for a runner.
+    - cron: "43 5 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  udeps:
+    name: udeps
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Harden the runner
+        uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        with:
+          egress-policy: audit
+
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # The explicit toolchain input overrides the stable pin in
+      # rust-toolchain.toml, since the unstable flag cargo-udeps passes
+      # to rustc only exists on nightly. Caching is left to the step
+      # below, as in every other job here.
+      - name: Set up Rust
+        uses: actions-rust-lang/setup-rust-toolchain@166cdcfd11aee3cb47222f9ddb555ce30ddb9659 # v1.17.0
+        with:
+          toolchain: nightly
+          cache: false
+
+      # A scheduled run happens on the default branch, so this one both
+      # restores and saves. Keeping the same condition as the other
+      # jobs means a nightly compiler upgrade rebuilds the world once
+      # and the following night reads the cache.
+      - name: Cache cargo artifacts
+        uses: Swatinem/rust-cache@c19371144df3bb44fab255c43d04cbc2ab54d1c4 # v2.9.1
+        with:
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+
+      # Same release-archive channel and checksum verification the lint
+      # job uses for its cargo linter, and the same marker convention:
+      # the comment names the crate for Renovate and has to sit on the
+      # line directly above the input it describes.
+      - name: Install cargo tools
+        uses: taiki-e/install-action@6a1bd70eaac3c8bdf093356838d7ee09fda951cf # v2.85.5
+        with:
+          # renovate: datasource=crate depName=cargo-udeps
+          tool: cargo-udeps@0.1.61
+
+      - name: Set up just
+        uses: proofhouse/github-actions/.github/actions/setup-just@131c527df05799916f98d8c4b26eb225dbfc7845 # v0.4.0
+
+      - name: Run the unused dependency sweep
+        run: just lint-udeps
