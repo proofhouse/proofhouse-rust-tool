@@ -360,12 +360,13 @@ lint-msrv:
 # where the tool above publishes nothing to unpack and would have to
 # compile first. --all-targets carries the check past the binary into
 # the tests, where a development dependency raising its own floor would
-# surface. The task runner beside the crate stays out of it the way it
-# stays out of the coverage reading: nothing ships it. The workflow runs
-# this recipe; the one above is what a contributor reaches for after
-# moving the floor by hand.
+# surface. Every member answers here, the task runner included: a
+# single field in the workspace manifest sets the floor for both, and a
+# runner that refuses to compile under it makes that number false for
+# the tree it names. The workflow runs this recipe; the one above is
+# what a contributor reaches for after moving the floor by hand.
 lint-msrv-targets:
-    cargo hack check --rust-version --all-targets
+    cargo hack check --workspace --rust-version --all-targets
 
 # Report code that appears more than once. jscpd hashes a sliding
 # window of tokens rather than lines, so renaming the identifiers in a
