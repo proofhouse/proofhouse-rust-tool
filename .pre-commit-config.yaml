@@ -91,6 +91,18 @@ repos:
         types: [toml]
         pass_filenames: false
 
+      # The fixer runs here, the way the biome hook above rewrites what
+      # it checks. Formatting has one right answer, so a hook that
+      # applies it beats one that fails and hands the work back. CI
+      # keeps the --check twin, which fires only if someone commits
+      # around the hooks.
+      - id: rustfmt
+        name: rustfmt
+        entry: just format-rs
+        language: system
+        types: [rust]
+        pass_filenames: false
+
       # Whitespace conventions from .editorconfig. The builtin
       # end-of-file-fixer / mixed-line-ending / trailing-whitespace
       # hooks above cover part of the same ground with fixed rules;

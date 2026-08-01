@@ -4,9 +4,10 @@
 # every pull request and every push to `main`. Each gate runs as its own
 # job so a flake in one block does not require rerunning the others and
 # the PR status surfaces which gate fired.
-# The text-quality lint set (vale, cspell, rumdl, biome, yamllint,
-# tombi) rides in the lint job off the Brewfile toolchain, since none of
-# those tools come from Cargo.toml.
+# The lint job draws on two toolchains. The text-quality set (vale,
+# cspell, rumdl, biome, yamllint, tombi) comes from the Brewfile, since
+# none of it ships through Cargo.toml, and the gates that read Rust
+# source come from the pinned compiler the job also sets up.
 #
 # Every job installs `just` from a SHA-pinned casey/just release
 # archive, verifies it against the bundled SHA256SUMS, and then invokes
@@ -49,6 +50,22 @@ jobs:
         with:
           persist-credentials: false
 
+      # Reads the pinned toolchain from rust-toolchain.toml. Its own
+      # caching is turned off so the rust-cache step below is the only
+      # thing writing the cache, with the save policy this repo wants.
+      - name: Set up Rust
+        uses: actions-rust-lang/setup-rust-toolchain@166cdcfd11aee3cb47222f9ddb555ce30ddb9659 # v1.17.0
+        with:
+          cache: false
+
+      # Pull requests restore the cache but never write it: a PR's
+      # dependency set is transient, and letting every branch save
+      # evicts the entries `main` builds from.
+      - name: Cache cargo artifacts
+        uses: Swatinem/rust-cache@c19371144df3bb44fab255c43d04cbc2ab54d1c4 # v2.9.1
+        with:
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+
       - name: Set up just
         uses: proofhouse/github-actions/.github/actions/setup-just@131c527df05799916f98d8c4b26eb225dbfc7845 # v0.4.0
 
@@ -66,11 +83,13 @@ jobs:
       - name: Update Homebrew
         run: brew update
 
-      # Brings in vale, cspell, rumdl, biome, yamllint, and tombi. The
-      # Brewfile also names just, rustup, and the cargo helpers, which
-      # this job either already has or never calls; installing the whole
-      # file is cheaper than maintaining a second, partial dependency
-      # list.
+      # Brings in vale, cspell, rumdl, biome, yamllint, and tombi.
+      # Installing the whole file costs less than maintaining a second,
+      # partial formula list, and the just and rustup entries it also
+      # carries do no harm: the PATH export at the top of the Justfile
+      # puts ~/.cargo/bin ahead of the Homebrew prefix, so the toolchain
+      # set up above answers for cargo no matter which step ran first.
+      # Guarding that ordering is the export's whole purpose.
       - name: Install Homebrew dependencies
         run: brew bundle install
 
