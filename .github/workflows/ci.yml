@@ -4,10 +4,11 @@
 # every pull request and every push to `main`. Each gate runs as its own
 # job so a flake in one block does not require rerunning the others and
 # the PR status surfaces which gate fired.
-# The lint job draws on two toolchains. The text-quality set (vale,
-# cspell, rumdl, biome, yamllint, tombi) comes from the Brewfile, since
-# none of it ships through Cargo.toml, and the gates that read Rust
-# source come from the pinned compiler the job also sets up.
+# The lint job draws on more than one toolchain. The text-quality set
+# (vale, cspell, rumdl, biome, yamllint, tombi) comes from the Brewfile,
+# since none of it ships through Cargo.toml. The gates that read Rust
+# source come from the pinned compiler the job also sets up, and from
+# the cargo linters installed beside it.
 #
 # Every job installs `just` from a SHA-pinned casey/just release
 # archive, verifies it against the bundled SHA256SUMS, and then invokes
@@ -93,10 +94,26 @@ jobs:
       - name: Install Homebrew dependencies
         run: brew bundle install
 
+      # Homebrew carries no formula for cargo-machete, so it arrives
+      # from the crate's own release archive. The action checks that
+      # download against the SHA256 it carries for the release before
+      # unpacking it. The version is pinned rather than floating, and
+      # the marker comment tells Renovate which crate to read; it has to
+      # sit on the line above the input it describes for the pattern to
+      # match.
+      - name: Install cargo tools
+        uses: taiki-e/install-action@6a1bd70eaac3c8bdf093356838d7ee09fda951cf # v2.85.5
+        with:
+          # renovate: datasource=crate depName=cargo-machete
+          tool: cargo-machete@0.9.2
+
       # Vale's style packages are downloaded, not vendored, so
-      # `lint-prose` fails on a bare checkout without this.
+      # `lint-prose` fails on a bare checkout without this. The narrow
+      # recipe rather than `install-tools`: that one also installs the
+      # cargo linters a development machine needs, and the step above
+      # has already put a pinned build of those on this runner.
       - name: Sync Vale styles
-        run: just install-tools
+        run: just vale-sync
 
       - name: Run lint gates
         run: just lint
