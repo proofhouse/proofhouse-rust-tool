@@ -344,6 +344,29 @@ lint-machete:
 lint-udeps:
     cargo +nightly udeps --all-targets
 
+# Confirm the crate builds on the oldest compiler its manifest claims to
+# support. cargo msrv verify reads `rust-version`, fetches that release
+# when the machine has never seen it, and runs a check under it. The
+# download plus a build from cold runs to minutes, so no hook fires this
+# one and the lint aggregate leaves it out. The floor sits a minor
+# release behind the pinned compiler, far enough back that a run under
+# it answers something a build on the pin cannot.
+lint-msrv:
+    cargo msrv verify
+
+# The same question in the form a remote runner can afford. cargo hack
+# reads the floor the manifest declares and hands the check to that
+# release through rustup, and a pinned build of it unpacks in seconds
+# where the tool above publishes nothing to unpack and would have to
+# compile first. --all-targets carries the check past the binary into
+# the tests, where a development dependency raising its own floor would
+# surface. The task runner beside the crate stays out of it the way it
+# stays out of the coverage reading: nothing ships it. The workflow runs
+# this recipe; the one above is what a contributor reaches for after
+# moving the floor by hand.
+lint-msrv-targets:
+    cargo hack check --rust-version --all-targets
+
 # Report code that appears more than once. jscpd hashes a sliding
 # window of tokens rather than lines, so renaming the identifiers in a
 # copy or reflowing its layout does not hide it. The window is fifty
