@@ -1,24 +1,46 @@
 [package]
 name = "proofhouse-rust-tool"
-version = "0.0.0"
-edition = "2024"
-rust-version = "1.96"
 description = "Reference CLI for the Proofhouse Rust tool reference repository"
-license = "Apache-2.0"
-publish = false
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
 
 [dependencies]
 clap = { version = "4.6.1", features = ["derive"] }
+
+[lints]
+workspace = true
+
+# The crate above ships the binary; the second member is the task runner
+# the coverage gate calls, which keeps first-party helper code out of the
+# published surface while the shared fields below still reach it.
+[workspace]
+members = ["xtask"]
+
+[workspace.package]
+version = "0.0.0"
+edition = "2024"
+rust-version = "1.96"
+license = "Apache-2.0"
+publish = false
 
 # Compiler lints. These two fill the slot vulture holds in the Python
 # repositories and deadcode holds in the Go one: an item nothing reaches
 # fails the build rather than accumulating quietly. Unused dependencies
 # answer to a different tool and arrive with their own gate.
-[lints.rust]
+[workspace.lints.rust]
 dead_code = "deny"
 unreachable_pub = "deny"
 
-[lints.clippy]
+# The coverage run compiles under a nightly compiler with `coverage_nightly`
+# set, and one attribute in the binary reads that flag. Every other build
+# would report the name as a typo, so it is declared here instead. Names
+# join this list only alongside the code that reads them.
+unexpected_cfgs = { level = "warn", check-cfg = ["cfg(coverage_nightly)"] }
+
+[workspace.lints.clippy]
 # Every group at warn, with the lint recipe passing -D warnings to turn
 # the set into errors. Taking restriction alongside the rest reads the
 # way `select = ALL` reads in the Python repositories: start from
@@ -84,6 +106,11 @@ missing_inline_in_public_items = "allow"
 # the command surface accepts never needs naming at a call site.
 impl_trait_in_params = "allow"
 
+# Both lints serve crates that build without the standard library. Every
+# member here links std by design.
+std_instead_of_alloc = "allow"
+std_instead_of_core = "allow"
+
 # Modules live one per file, with no directory carrying the name of the
 # file beside it. The sibling lint mod_module_files stays on and catches
 # any mod.rs that appears later; keeping both would leave no legal
@@ -102,7 +129,7 @@ self_named_module_files = "allow"
 # on private items, which is often where an example teaches the most.
 # missing_doc_code_examples is unstable and a release toolchain declines
 # to load it at all.
-[lints.rustdoc]
+[workspace.lints.rustdoc]
 bare_urls = "deny"
 broken_intra_doc_links = "deny"
 invalid_codeblock_attributes = "deny"

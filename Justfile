@@ -177,9 +177,10 @@ clean:
 # the rest of the binary down with it, and the run reports the whole set
 # of failures rather than the earliest one. Profiles live in
 # .config/nextest.toml; CI passes `--profile ci` to select the stricter
-# one.
+# one. --workspace reaches the task runner beside the binary, whose own
+# tests are what keep the coverage threshold honest.
 test *args:
-    cargo nextest run "$@"
+    cargo nextest run --workspace "$@"
 
 # Run doctests. nextest cannot execute them: the harness reaches into
 # rustdoc through an entry point that has stayed unstable since the
@@ -187,6 +188,81 @@ test *args:
 # this recipe and a CI step of their own to run at all.
 test-doc:
     cargo test --doc
+
+# --- Coverage ---
+
+# Toolchain the coverage run compiles under. Branch instrumentation is
+# still an unstable feature, so it answers on a nightly compiler only,
+# and a dated channel keeps two runs of one commit on the same one.
+# Nothing bumps this date on its own: raise it by hand, rerun `just
+# cover`, and move the workflow along with it — the cover job in
+# .github/workflows/ci.yml sets up the same channel and points back here.
+coverage_toolchain := "nightly-2026-08-01"
+
+# Run the suite under branch instrumentation and hold the result at every
+# line and every branch.
+#
+# --remap-path-prefix rewrites the workspace root out of the tracefile,
+# so a path one operating system writes matches what the others write and
+# the merge downstream lands one entry per source file. --skip-functions
+# drops the per-function records; nothing reads them here and they are
+# where a merge across platforms finds contradictions. The build script
+# leaves the measured surface through the filename filter: it runs while
+# cargo builds rather than under the harness, so no test can reach it,
+# and the task runner is excluded the same way through --exclude. The
+# region threshold on the run is the backstop the coverage tool enforces
+# by itself; `cargo xtask coverage` then reads the tracefile and answers
+# for lines and branches, which is the pair this project gates on.
+#
+# The slot argument names the tracefile. CI hands it the runner label so
+# every matrix slot uploads a file of its own; locally it stays "local".
+cover slot="local":
+    cargo +{{ coverage_toolchain }} llvm-cov nextest --branch --all-features --workspace --exclude xtask --remap-path-prefix --skip-functions --ignore-filename-regex '^build\.rs$' --fail-under-regions 100 --lcov --output-path lcov-{{ slot }}.info
+    cargo xtask coverage lcov-{{ slot }}.info
+
+# Render the per-line HTML report and name the entry point. The source
+# view shades each line and each branch arm by whether a test reached it,
+# which points at the arm a new test still has to exercise. Local
+# inspection only, so it names no threshold.
+cover-html:
+    cargo +{{ coverage_toolchain }} llvm-cov nextest --branch --all-features --workspace --exclude xtask --html
+    @echo "open target/llvm-cov/html/index.html"
+
+# Merge every slot's tracefile into one and check the merged total. This
+# is the authoritative reading: a branch that no single operating system
+# exercises still has to be reached by some slot, and only the merged
+# file says whether it was. lcov does the merging rather than the task
+# runner, because merging means combining the per-line hit counts of two
+# reports over one file, where adding the summary lines of both would
+# ask every slot to carry the whole tree alone. The CI coverage job
+# runs this after collecting the per-slot artifacts.
+#
+# Two adjustments make that merge mean what it says. A Windows runner
+# writes its source paths with a backslash, so the same file arrives
+# under a second spelling and the merge would keep the two apart;
+# rewriting the separator first lands one entry per source file.
+# Branch records are the other: lcov discards them unless the run asks
+# for them, and a merged report with no branch records left would clear
+# a branch threshold by having nothing to fail on.
+[script]
+cover-combine:
+    tracefiles=()
+    for slot in lcov-*.info; do
+        normalized=$(mktemp)
+        tr '\\' '/' < "$slot" > "$normalized"
+        mv "$normalized" "$slot"
+        tracefiles+=(--add-tracefile "$slot")
+    done
+    lcov --branch-coverage "${tracefiles[@]}" --output-file lcov.info
+    cargo xtask coverage lcov.info
+
+# Fail when any line changed since [base] lacks coverage. The whole-tree
+# floor already sits at every line, so on a clean branch this says
+# nothing new; it earns its keep by naming the touched lines directly the
+# moment a change does drop one, which reads faster than a total that
+# moved. Reads the merged tracefile, so `cover-combine` runs first.
+cover-diff base="origin/main":
+    diff-cover lcov.info --compare-branch={{ base }} --fail-under=100
 
 # --- Dependencies ---
 
@@ -223,18 +299,18 @@ lint: lint-rs-all lint-prose lint-spelling lint-markdown lint-config lint-yaml l
 # contributor pushed; `format-rs` is the in-place twin, the same pairing
 # lint-toml and format-toml use.
 lint-rs-format:
-    cargo fmt --check
+    cargo fmt --all --check
 
-# Run clippy over the crate. The lint set lives in Cargo.toml and the
-# counting thresholds in clippy.toml; this recipe only decides what gets
-# compiled and how loud a finding is. --all-targets reaches the test and
-# build-script code a bare run skips, --all-features leaves no gated
-# module unread, and -D warnings makes every enabled lint a failure
-# rather than a note nobody sees.
+# Run clippy over every workspace member. The lint set lives in
+# Cargo.toml and the counting thresholds in clippy.toml; this recipe only
+# decides what gets compiled and how loud a finding is. --all-targets
+# reaches the test and build-script code a bare run skips, --all-features
+# leaves no gated module unread, and -D warnings makes every enabled lint
+# a failure rather than a note nobody sees.
 lint-clippy:
-    cargo clippy --all-targets --all-features -- -D warnings
+    cargo clippy --workspace --all-targets --all-features -- -D warnings
 
-# Render the crate documentation and treat any complaint as a failure.
+# Render the workspace documentation and treat any complaint as a failure.
 # Building the docs is the whole check here — nothing is published, the
 # manifest sets publish = false and no docs.rs page exists, so a dead
 # link or a malformed example would otherwise stay invisible until a
@@ -242,7 +318,7 @@ lint-clippy:
 # covers whatever warns outside that table. --no-deps stops the run at
 # this crate rather than re-rendering the dependency graph.
 lint-docs:
-    RUSTDOCFLAGS="-D warnings" cargo doc --no-deps
+    RUSTDOCFLAGS="-D warnings" cargo doc --workspace --no-deps
 
 # Report dependencies the manifest declares and no source file names.
 # cargo machete answers from the manifest and a text scan of the crate,
@@ -408,7 +484,7 @@ format: format-rs format-markdown format-config format-toml format-just
 # Rewrite Rust sources through rustfmt. Style settings come from
 # rustfmt.toml at the repo root.
 format-rs:
-    cargo fmt
+    cargo fmt --all
 
 # Format Markdown files (whitespace, list markers, code fence styles).
 # Rewrites in place. Pair with `fix-markdown` for semantic lint fixes.
