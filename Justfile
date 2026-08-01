@@ -11,8 +11,9 @@ set script-interpreter := ['bash', '-eu']
 # rust-toolchain.toml pins the compiler, but a system cargo sitting
 # earlier on PATH answers first and ignores the pin, so the build would
 # silently run on the wrong toolchain. The Go twin prepends GOPATH/bin
-# the same way.
-export PATH := env("CARGO_HOME", env("HOME") + "/.cargo") + "/bin:" + env("PATH")
+# the same way. `home_directory()` resolves the platform home, so the
+# expression still parses where nothing sets HOME.
+export PATH := env("CARGO_HOME", home_directory() + "/.cargo") + "/bin:" + env("PATH")
 
 # Locate a Docker-compatible container runtime. Probe PATH first, then
 # well-known install locations so the recipe still works inside agentic
