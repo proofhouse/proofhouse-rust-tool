@@ -36,6 +36,14 @@ path = [
 SPDX-FileCopyrightText = "Copyright Authors of Proofhouse"
 SPDX-License-Identifier = "Apache-2.0"
 
+# Tool configuration under .config/, where cargo and the tools around it
+# look for settings that do not belong in the manifest. Globbed by
+# directory for the same reason the workflows below are.
+[[annotations]]
+path = [".config/**"]
+SPDX-FileCopyrightText = "Copyright Authors of Proofhouse"
+SPDX-License-Identifier = "Apache-2.0"
+
 # Cargo owns the resolved dependency graph and rewrites the file whole
 # whenever the manifest moves, so anything written into it by hand is
 # gone by the next resolution.

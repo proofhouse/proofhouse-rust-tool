@@ -1,0 +1,25 @@
+# Test runner configuration. The default profile stays exactly as
+# nextest ships it, so a local run behaves the way the tool's own
+# documentation describes. The ci profile below holds the settings a run
+# on the merge path wants; the workflow names it on the command line.
+#
+# No published schema covers this file, so the TOML gate reads it for
+# syntax and layout only.
+
+[profile.ci]
+# Report every failing test rather than stopping at the first one. A
+# remote run costs minutes to reach the first assertion, and whoever
+# reads the log afterward wants the whole list.
+fail-fast = false
+
+# Never rerun a failing test. A retry turns a test that fails one run in
+# five into a green check and files the nondeterminism away where nobody
+# looks. Zero is also nextest's own default; the key is written out
+# because here it is a decision rather than an inherited value.
+retries = 0
+
+[profile.ci.junit]
+# Machine-readable results for whatever consumes them later. The path
+# resolves against the profile's store directory, so the report lands in
+# target/nextest/ci/ and the ignored build tree already covers it.
+path = "junit.xml"

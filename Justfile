@@ -172,13 +172,19 @@ clean:
 
 # --- Test ---
 
-# Run tests
+# Run the test suite under nextest. Every test gets its own process, so
+# a panic or an abort reports as that one test failing instead of taking
+# the rest of the binary down with it, and the run reports the whole set
+# of failures rather than the earliest one. Profiles live in
+# .config/nextest.toml; CI passes `--profile ci` to select the stricter
+# one.
 test *args:
-    cargo test "$@"
+    cargo nextest run "$@"
 
-# Run doctests. Kept apart from `test` because the test runner adopted
-# later on does not execute doctests, so they need their own recipe and
-# CI job to stay covered.
+# Run doctests. nextest cannot execute them: the harness reaches into
+# rustdoc through an entry point that has stayed unstable since the
+# request for it opened in 2022. Documentation examples therefore need
+# this recipe and a CI step of their own to run at all.
 test-doc:
     cargo test --doc
 

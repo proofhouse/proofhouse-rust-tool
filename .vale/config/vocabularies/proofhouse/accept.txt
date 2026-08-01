@@ -163,3 +163,6 @@ funlen
 jscpd
 rustc
 udeps
+nextest
+JUnit
+[Dd]octests?
