@@ -35,6 +35,7 @@ rumdl
 RUSTDOCFLAGS
 RUSTFLAGS
 sandboxed
+SARIF
 shellcheck
 Swatinem
 taiki

@@ -1,0 +1,94 @@
+---
+# Dependency advisory reporting into GitHub Code Scanning. One job runs
+# osv-scanner across the resolved dependency set and uploads the result
+# as SARIF under the `osv-scanner` category. Cargo.lock is one of the
+# lockfile formats the scanner parses on its own, so it grades the same
+# pinned versions a `--locked` build compiles, without re-resolving the
+# graph or reading the manifest.
+#
+# The `audit` job in ci.yml puts the same question to the RustSec
+# database, and OSV mirrors RustSec, so an advisory reaching one of them
+# reaches both. Running each is still worth the duplication. OSV
+# publishes malicious-package reports under a MAL- prefix that the
+# RustSec feed carries no equivalent of, which is where a typosquatted
+# crate name or a hijacked release turns up.
+#
+# Pull requests and pushes to `main` keep the Code Scanning baseline
+# current, and the daily schedule re-grades an untouched `main` against
+# whatever advisories landed since the last merge — the window where a
+# crate that looked clean at review time stops being so. A finding here
+# never fails the run, since the reporter runs with vulnerability
+# failures turned off. The gate that closes on a bad dependency stays in
+# ci.yml; this workflow is the reporting half beside it.
+
+name: security
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    # 08:29 UTC daily. Off the hour and off every minute the sibling
+    # repositories already schedule, so the scan never waits behind
+    # another project's job for a runner.
+    - cron: "29 8 * * *"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  osv-scanner:
+    name: osv-scanner
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - name: Harden the runner
+        uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        with:
+          egress-policy: audit
+
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # Walks the checkout, picks up the lockfile at the root, and
+      # writes what OSV knows about each pinned version as JSON. An exit
+      # code reporting findings has to fall through to the next step,
+      # which is the one that shapes the SARIF — stopping here would
+      # skip the upload and lose the very result worth reading.
+      - name: Run osv-scanner
+        uses: google/osv-scanner-action/osv-scanner-action@9a498708959aeaef5ef730655706c5a1df1edbc2 # v2.3.8
+        continue-on-error: true
+        with:
+          scan-args: |-
+            --format=json
+            --output=results.json
+            --recursive
+            ./
+
+      # Turns the JSON into the SARIF that Code Scanning ingests. The
+      # vulnerability-failure switch is off because the blocking verdict
+      # belongs to the dependency policy gate in ci.yml. Annotations are
+      # off as well, so findings collect in the Security tab instead of
+      # landing a second time as inline pull-request comments.
+      - name: Build SARIF report
+        uses: google/osv-scanner-action/osv-reporter-action@9a498708959aeaef5ef730655706c5a1df1edbc2 # v2.3.8
+        with:
+          scan-args: |-
+            --output=results.sarif
+            --new=results.json
+            --gh-annotations=false
+            --fail-on-vuln=false
+
+      - name: Upload osv-scanner SARIF
+        uses: github/codeql-action/upload-sarif@f205ea1c3313d32999d8d6a48b4f6530d4437b38 # v4
+        with:
+          sarif_file: results.sarif
+          category: osv-scanner
