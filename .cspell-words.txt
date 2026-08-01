@@ -1,4 +1,5 @@
 AGENTMSG
+binstall
 buildmeta
 cocogitto
 doctests

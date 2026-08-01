@@ -150,3 +150,5 @@ yamllint
 ISO
 [Rr]etrigger(s|ed|ing)?
 cocogitto
+Brewfile
+[Rr]ustup('s)?
