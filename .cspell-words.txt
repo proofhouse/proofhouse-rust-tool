@@ -27,6 +27,7 @@ proofhouse
 pyproject
 rhysd
 rumdl
+RUSTDOCFLAGS
 RUSTFLAGS
 sandboxed
 shellcheck

@@ -117,6 +117,16 @@ repos:
         always_run: true
         pass_filenames: false
 
+      # Rendering the docs means compiling the crate and everything it
+      # depends on first, which puts this hook on the same footing as
+      # clippy above and out of the commit path for the same reason.
+      - id: rustdoc
+        name: rustdoc
+        entry: just lint-docs
+        language: system
+        stages: [pre-push]
+        pass_filenames: false
+
       # Whitespace conventions from .editorconfig. The builtin
       # end-of-file-fixer / mixed-line-ending / trailing-whitespace
       # hooks above cover part of the same ground with fixed rules;

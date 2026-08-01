@@ -190,13 +190,13 @@ lock-check:
 # --- Lint ---
 
 # Aggregator over the Rust-flavored lint sub-recipes: the rustfmt drift
-# check, clippy, and actionlint. Kept apart from `lint` so someone
-# iterating on the crate can run the source-side gates without waiting
-# on the whole text-quality toolchain. Each new gate of that kind
-# appends itself here. actionlint reads YAML rather than Rust, but it
-# belongs to the same per-PR set, in the slot the Go repository gives
-# it inside `lint-go-all`.
-lint-rs-all: lint-rs-format lint-clippy lint-workflows
+# check, clippy, the documentation build, and actionlint. Kept apart
+# from `lint` so someone iterating on the crate can run the source-side
+# gates without waiting on the whole text-quality toolchain. Each new
+# gate of that kind appends itself here. actionlint reads YAML rather
+# than Rust, but it belongs to the same per-PR set, in the slot the Go
+# repository gives it inside `lint-go-all`.
+lint-rs-all: lint-rs-format lint-clippy lint-docs lint-workflows
 
 # Aggregate lint gate. One entry point for contributors and CI, gaining a
 # dependency as each gate lands. Today it carries the Rust gates (via
@@ -221,6 +221,16 @@ lint-rs-format:
 # rather than a note nobody sees.
 lint-clippy:
     cargo clippy --all-targets --all-features -- -D warnings
+
+# Render the crate documentation and treat any complaint as a failure.
+# Building the docs is the whole check here — nothing is published, the
+# manifest sets publish = false and no docs.rs page exists, so a dead
+# link or a malformed example would otherwise stay invisible until a
+# reader hit it. The rustdoc lint levels live in Cargo.toml; RUSTDOCFLAGS
+# covers whatever warns outside that table. --no-deps stops the run at
+# this crate rather than re-rendering the dependency graph.
+lint-docs:
+    RUSTDOCFLAGS="-D warnings" cargo doc --no-deps
 
 # Check prose with vale against the styles in .vale.ini. The glob
 # excludes the LICENSE (canonical Apache 2.0 text), the auto-generated
