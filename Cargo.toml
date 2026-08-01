@@ -41,6 +41,14 @@ publish = false
 dead_code = "deny"
 unreachable_pub = "deny"
 
+# Neither member reaches for unsafe and neither has reason to: the
+# binary parses arguments and writes text, and the task runner reads
+# what the coverage run leaves behind. Forbid rather than deny because
+# deny yields to an allow attribute written above the block that wants
+# it, while forbid rejects that attribute along with the block.
+# Relaxing the rule means editing this line, where a reviewer meets it.
+unsafe_code = "forbid"
+
 # The coverage run compiles under a nightly compiler with `coverage_nightly`
 # set, and one attribute in the binary reads that flag. Every other build
 # would report the name as a typo, so it is declared here instead. Names
