@@ -166,3 +166,5 @@ udeps
 nextest
 JUnit
 [Dd]octests?
+lcov
+[Tt]racefiles?

@@ -4,13 +4,16 @@
 # a license, and the non-Rust remainder of the tree names both here.
 version = 1
 
-# Root-level configuration and dotfiles. Some of these formats take
-# comments and some have no syntax for one at all, and among the ones
-# that do, several are shorter than the header would be. Declaring the
-# whole group in a single place leaves coverage independent of what any
-# one format allows.
+# Configuration and dotfiles. Some of these formats take comments and
+# some have no syntax for one at all, and among the ones that do, several
+# are shorter than the header would be. Declaring the whole group in a
+# single place leaves coverage independent of what any one format allows.
+# Two entries sit below the root rather than in it: cargo reads one for
+# its own settings and resolves the other as the second member of the
+# workspace.
 [[annotations]]
 path = [
+  ".cargo/config.toml",
   ".cspell-words.txt",
   ".cspell.jsonc",
   ".editorconfig",
@@ -32,6 +35,7 @@ path = [
   "rust-toolchain.toml",
   "rustfmt.toml",
   "tombi.toml",
+  "xtask/Cargo.toml",
 ]
 SPDX-FileCopyrightText = "Copyright Authors of Proofhouse"
 SPDX-License-Identifier = "Apache-2.0"

@@ -39,9 +39,43 @@ fn resolve(commit: Option<&'static str>, date: Option<&'static str>) -> BuildInf
     }
 }
 
+// Whether a stamped value looks right depends on whether git was around at
+// build time, and a run can't pick which of the two builds it gets. The
+// predicates below carry that either-or so a test can drive both sides of it
+// by argument, leaving `get_yields_environment_agnostic_values` to assert
+// against whichever one this build produced.
 #[cfg(test)]
 mod tests {
     use super::{get, resolve};
+
+    /// Whether `commit` reads as a stamped short SHA or as the unstamped
+    /// placeholder.
+    fn commit_has_expected_shape(commit: &str) -> bool {
+        commit.is_empty() || (commit.len() == 7 && commit.chars().all(|ch| ch.is_ascii_hexdigit()))
+    }
+
+    /// Whether `date` reads as a stamped ISO-8601 instant or as the unstamped
+    /// placeholder.
+    fn date_has_expected_shape(date: &str) -> bool {
+        let year: Vec<char> = date.chars().take(4).collect();
+        date == "unknown" || (year.len() == 4 && year.iter().all(char::is_ascii_digit))
+    }
+
+    #[test]
+    fn commit_shape_spans_stamped_and_unstamped_builds() {
+        assert!(commit_has_expected_shape(""));
+        assert!(commit_has_expected_shape("abc1234"));
+        assert!(!commit_has_expected_shape("abc123"));
+        assert!(!commit_has_expected_shape("1234abz"));
+    }
+
+    #[test]
+    fn date_shape_spans_stamped_and_unstamped_builds() {
+        assert!(date_has_expected_shape("unknown"));
+        assert!(date_has_expected_shape("2026-07-09T12:00:00Z"));
+        assert!(!date_has_expected_shape("26"));
+        assert!(!date_has_expected_shape("20x6-07-09T12:00:00Z"));
+    }
 
     #[test]
     fn resolve_uses_fallbacks_when_unstamped() {
@@ -64,15 +98,12 @@ mod tests {
         assert_eq!(info.version, env!("CARGO_PKG_VERSION"));
 
         assert!(
-            info.commit.is_empty()
-                || (info.commit.len() == 7 && info.commit.chars().all(|ch| ch.is_ascii_hexdigit())),
+            commit_has_expected_shape(info.commit),
             "commit must be empty or 7 hex chars, got {:?}",
             info.commit
         );
-
-        let year: Vec<char> = info.date.chars().take(4).collect();
         assert!(
-            info.date == "unknown" || (year.len() == 4 && year.iter().all(char::is_ascii_digit)),
+            date_has_expected_shape(info.date),
             "date must be \"unknown\" or start with a 4-digit year, got {:?}",
             info.date
         );

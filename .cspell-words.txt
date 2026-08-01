@@ -3,6 +3,7 @@ autostash
 backticked
 binstall
 buildmeta
+cfgs
 cocogitto
 commitlint
 complexipy
@@ -39,9 +40,12 @@ taiki
 tbhb
 tmpl
 tombi
+tracefile
+tracefiles
 Tricolon
 udeps
 venv
 worktree
 worktrees
+xtask
 yamllintignore
