@@ -14,6 +14,57 @@ set script-interpreter := ['bash', '-eu']
 # the same way.
 export PATH := env("CARGO_HOME", env("HOME") + "/.cargo") + "/bin:" + env("PATH")
 
+# Locate a Docker-compatible container runtime. Probe PATH first, then
+# well-known install locations so the recipe still works inside agentic
+# harnesses or sandboxes that strip /usr/local/bin from PATH. Override by
+# setting CONTAINER_RUNTIME in the environment.
+#
+# The continuation lines of the `for` list below hang under the first
+# candidate path rather than on a two-space grid, which is what shell
+# style calls for and what `lint-editorconfig` would otherwise reject
+# under this file's indent_size = 2. Exempt just that span rather than
+# re-indent a block the sibling repos carry verbatim.
+# editorconfig-checker-disable
+container_runtime := env("CONTAINER_RUNTIME", `bash -c '
+    docker_path=$(command -v docker 2>/dev/null || true)
+    podman_path=$(command -v podman 2>/dev/null || true)
+    for p in "$docker_path" \
+             /usr/local/bin/docker \
+             /opt/homebrew/bin/docker \
+             /Applications/Docker.app/Contents/Resources/bin/docker \
+             "$HOME/.orbstack/bin/docker" \
+             "$HOME/.rd/bin/docker" \
+             "$podman_path" \
+             /opt/podman/bin/podman; do
+        if [ -n "$p" ] && [ -x "$p" ]; then echo "$p"; exit 0; fi
+    done
+    echo docker
+'`)
+
+# editorconfig-checker-enable
+
+# actionlint version pin. The upstream image bundles actionlint (and
+# the shellcheck it shells out to) at a known version, and actionlint
+# has no crates.io release for the dev toolchain to install, so we pin
+# a Docker image by digest instead. Renovate tracks the version +
+# digest pair below via the comment marker (the shared Justfile
+# customManager from the org's renovate presets).
+
+# renovate: datasource=docker depName=rhysd/actionlint
+actionlint_version := "1.7.12"
+actionlint_image := "docker.io/rhysd/actionlint:1.7.12@sha256:b1934ee5f1c509618f2508e6eb47ee0d3520686341fec936f3b79331f9315667"
+
+# actionlint invocation. Mounts the repo read-only at /repo with -w /repo
+# so actionlint finds .github/workflows/ and .github/actionlint.yaml.
+#
+# DOCKER_CONFIG points at a fresh empty directory so docker skips the
+# osxkeychain credential helper (public Docker Hub pulls don't need it,
+# and sandboxed environments can't always reach the helper binary).
+# PATH gets the runtime's directory prepended for cases where docker
+# itself isn't on the calling shell's PATH. Shell substitutions
+# evaluate at recipe-run time, not Justfile-parse time.
+actionlint := 'DOCKER_CONFIG="$(mktemp -d)" PATH="$(dirname ' + container_runtime + '):$PATH" ' + container_runtime + ' run --rm -v "$(pwd):/repo:ro" -w /repo ' + actionlint_image
+
 # Build metadata. `date` is the *committer date* (UTC, ISO-8601), not
 # build invocation time, so two builds of the same commit produce an
 # identical binary. `source_date_epoch` exports the same instant as a
@@ -192,6 +243,16 @@ lint-yaml *args:
 lint-toml:
     tombi format --check --diff
     tombi lint --offline --error-on-warnings
+
+# Lint GitHub Actions workflow files via actionlint. actionlint walks
+# `.github/workflows/` by default, parses each workflow, and flags
+# unknown actions, mis-typed expressions, shellcheck issues inside
+# `run:` blocks, and SHA-pin drift. Complements `lint-yaml` (which
+# checks YAML structure) with workflow-shape rules yamllint can't see.
+# Pinned Docker image; Renovate bumps the version + digest via the
+# shared Justfile customManager.
+lint-workflows:
+    {{ actionlint }}
 
 # Pre-validate a drafted commit message against the same gates the
 # commit-msg hook runs, so message problems surface while iterating
