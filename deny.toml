@@ -1,0 +1,73 @@
+# Dependency policy, read by cargo deny from the repository root. Four
+# checks answer off this one file: the advisory grading, the license
+# allow-list over the transitive tree, the duplicate-version ban, and
+# the restriction on where a crate may come from. Nobody publishes a
+# schema for the format, so the TOML gate reads this file for syntax
+# and layout alone, and every key below was taken by hand from the
+# checker's own configuration reference at the pinned version.
+
+# Advisories the RustSec database records against a resolved version.
+# Vulnerability records fail the run and offer no setting to soften
+# them. The two informational classes take a scope apiece, and both are
+# widened past their defaults to cover the whole graph: a crate whose
+# maintainer stepped away, or whose soundness the author withdrew, is
+# worth hearing about whether the manifest names it or six other crates
+# reach it.
+[advisories]
+# A yanked release is one the publisher pulled back from the registry.
+# Whatever drove that decision, a build resolving onto it is building
+# on something its own author retracted.
+yanked = "deny"
+unmaintained = "all"
+unsound = "all"
+# Nothing is silenced today. This file has no field for the reasoning
+# behind an entry, so a future one arrives with a `#` comment naming
+# the advisory and saying why the exposure was accepted, the shape the
+# clippy allow list in Cargo.toml already follows.
+ignore = []
+# An ignore entry matching nothing in the graph fails rather than
+# warning. A silenced advisory then cannot outlive the dependency that
+# drew it: the moment that crate leaves, the stale line stops the run
+# instead of sitting there granting an exemption to nobody.
+unused-ignored-advisory = "deny"
+
+# Licenses the dependency tree may carry, written as SPDX expressions.
+# Anything outside the list fails, so a new dependency arriving under
+# an unfamiliar license surfaces as a decision somebody makes rather
+# than as an adoption nobody noticed. This is the complement of the
+# reuse gate: that one reads the headers written in this repository,
+# and this one reads what the graph brings in from elsewhere. The first
+# two entries are the org baseline; every entry past them names the
+# crate that put it there.
+[licenses]
+allow = [
+  "Apache-2.0",
+  "MIT",
+  # unicode-ident ships the character tables it derives from the
+  # Unicode data files, whose terms travel with them. It reaches the
+  # tree through proc-macro2 and syn, which is to say through every
+  # derive macro the command surface uses.
+  "Unicode-3.0",
+]
+
+# Two resolved versions of one crate means both get compiled and both
+# get linked, which leaves an advisory against that crate needing to be
+# checked twice over and can put two incompatible copies of the same
+# type in one program. The graph carries no such pair today and this
+# holds it there. An exception would land in a skip list here with a
+# comment naming the crate and the reason, the way the duplicate
+# allowance in clippy.toml reads.
+[bans]
+multiple-versions = "deny"
+# A dependency requirement of `*` accepts whatever the registry serves
+# next, which is a version nobody here ever read.
+wildcards = "deny"
+
+# crates.io and nothing besides. A git dependency resolves to whatever
+# a branch happens to hold when the lock was written, sits outside the
+# registry's yank mechanism, and gives the advisory database no
+# published version to match against, so git sources and unknown
+# registries both fail rather than warn.
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"
