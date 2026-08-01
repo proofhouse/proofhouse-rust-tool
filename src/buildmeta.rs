@@ -9,19 +9,24 @@
 //! date whenever a build starts from a source tarball with no git around.
 
 /// Version, short git commit, and build date of a tool build.
+///
+/// The lifetime is what a real build never needs: the values a binary carries
+/// come from the compile-time environment and live for the whole run. Naming
+/// it lets a caller hand [`resolve`] a stamp it owns, which is how a test
+/// covers stamps this build didn't produce.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct BuildInfo {
+pub struct BuildInfo<'stamp> {
     /// Semantic version, from the crate's `CARGO_PKG_VERSION`.
-    pub version: &'static str,
+    pub version: &'stamp str,
     /// Short git commit SHA, or empty when built outside a checkout.
-    pub commit: &'static str,
+    pub commit: &'stamp str,
     /// Committer date in UTC ISO-8601, or `"unknown"` outside a checkout.
-    pub date: &'static str,
+    pub date: &'stamp str,
 }
 
 /// Return the build metadata for the current binary.
 #[must_use]
-pub fn get() -> BuildInfo {
+pub fn get() -> BuildInfo<'static> {
     resolve(
         option_env!("PROOFHOUSE_BUILD_COMMIT"),
         option_env!("PROOFHOUSE_BUILD_DATE"),
@@ -31,7 +36,11 @@ pub fn get() -> BuildInfo {
 /// Fill a [`BuildInfo`] from the optionally stamped commit and date, applying
 /// the empty-string and `"unknown"` fallbacks when the build script emitted
 /// nothing.
-fn resolve(commit: Option<&'static str>, date: Option<&'static str>) -> BuildInfo {
+#[must_use]
+pub fn resolve<'stamp>(
+    commit: Option<&'stamp str>,
+    date: Option<&'stamp str>,
+) -> BuildInfo<'stamp> {
     BuildInfo {
         version: env!("CARGO_PKG_VERSION"),
         commit: commit.unwrap_or(""),

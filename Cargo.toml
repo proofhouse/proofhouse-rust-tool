@@ -10,6 +10,13 @@ publish.workspace = true
 [dependencies]
 clap = { version = "4.6.1", features = ["derive"] }
 
+# Generates test inputs from a description of what a valid input looks
+# like, then narrows a failing one to the smallest input that still
+# fails. The derive companion crate stays out until a strategy is
+# actually derived from a type.
+[dev-dependencies]
+proptest = "1.11"
+
 [lints]
 workspace = true
 
