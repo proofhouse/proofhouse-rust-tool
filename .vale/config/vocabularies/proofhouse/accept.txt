@@ -160,3 +160,4 @@ gocognit
 funlen
 [Ss]uppression[s]?
 [Rr]ustdoc
+jscpd

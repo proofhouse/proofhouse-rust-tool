@@ -6,7 +6,7 @@
 # the PR status surfaces which gate fired.
 # The lint job draws on more than one toolchain. The text-quality set
 # (vale, cspell, rumdl, biome, yamllint, tombi) comes from the Brewfile,
-# since none of it ships through Cargo.toml. The gates that read Rust
+# as does the duplication scanner. The remaining gates that read Rust
 # source come from the pinned compiler the job also sets up, and from
 # the cargo linters installed beside it.
 #
@@ -84,7 +84,7 @@ jobs:
       - name: Update Homebrew
         run: brew update
 
-      # Brings in vale, cspell, rumdl, biome, yamllint, and tombi.
+      # Brings in vale, cspell, rumdl, biome, yamllint, tombi, and jscpd.
       # Installing the whole file costs less than maintaining a second,
       # partial formula list, and the just and rustup entries it also
       # carries do no harm: the PATH export at the top of the Justfile
