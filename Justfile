@@ -120,8 +120,21 @@ lock-check:
 # --- Lint ---
 
 # Aggregate lint gate. One entry point for contributors and CI, gaining a
-# dependency as each gate lands. Today it carries the TOML gate only.
-lint: lint-toml
+# dependency as each gate lands. Today it carries prose (vale) and TOML
+# (tombi).
+lint: lint-prose lint-toml
+
+# Check prose with vale against the styles in .vale.ini. The glob
+# excludes the LICENSE (canonical Apache 2.0 text), the auto-generated
+# changelog, vale's own style packages, scratch dirs, the gitignored
+# agent worktrees under .claude/worktrees/, the COMMIT_AGENTMSG draft
+# (whose own recipe checks it under the stricter commit scope), and the
+# target/ build tree; the per-file-type rules in .vale.ini decide what
+# else gets inspected. Findings render through the proofhouse-agent
+# template from the proofhouse package: one machine-parseable line per
+# finding.
+lint-prose *args:
+    vale --output=proofhouse-agent.tmpl --glob='!{LICENSE,CHANGELOG.md,.vale/*,tmp/*,.claude/worktrees/*,COMMIT_AGENTMSG,target/*}' {{ if args == "" { "." } else { args } }}
 
 # tombi is the org TOML gate (tombi 1.2.0): lint-checks Cargo.toml (validated offline
 # against the embedded SchemaStore cargo.json), rust-toolchain.toml, .cargo/config.toml,
@@ -142,3 +155,11 @@ format: format-toml
 # only; key order preserved (reordering disabled in tombi.toml).
 format-toml:
     tombi format
+
+# --- Utilities ---
+
+# Sync Vale styles and dictionaries. Run once after cloning the repo,
+# and whenever .vale.ini's Packages list changes. CI runs this before
+# `just lint-prose`.
+vale-sync:
+    vale sync

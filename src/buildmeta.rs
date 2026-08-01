@@ -3,10 +3,10 @@
 
 //! Build-time information stamped into the tool.
 //!
-//! The version comes from the crate metadata; the commit and date come from
-//! the compile-time environment variables the build script emits when it runs
-//! inside a git checkout. Placeholders stand in for the commit and date when
-//! the crate is built from a source tarball with no git available.
+//! The version comes from the crate metadata. The commit and date come
+//! from the compile-time environment variables the build script emits when
+//! it runs inside a git checkout. Placeholders stand in for the commit and
+//! date whenever a build starts from a source tarball with no git around.
 
 /// Version, short git commit, and build date of a tool build.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

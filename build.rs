@@ -5,8 +5,8 @@
 //!
 //! It probes git for the short commit SHA and the committer date, emitting
 //! them as compile-time environment variables the `buildmeta` module reads.
-//! When git is unavailable or this is not a checkout, it emits nothing and
-//! the crate falls back to its placeholder values.
+//! Without git, or outside a checkout, it emits nothing and the crate
+//! falls back to its placeholder values.
 
 use std::env;
 use std::fs;

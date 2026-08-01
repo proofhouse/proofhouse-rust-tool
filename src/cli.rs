@@ -5,7 +5,7 @@
 //!
 //! The command set stays intentionally small: a single `version` subcommand
 //! that prints the stamped build metadata. The repository's value sits in the
-//! supply-chain gates built around the binary, not in the command surface.
+//! supply chain gates built around the binary, not in the command surface.
 
 use std::io;
 
