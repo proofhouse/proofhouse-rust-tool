@@ -1,5 +1,6 @@
 AGENTMSG
 buildmeta
+cocogitto
 doctests
 EDITMSG
 GOPATH
@@ -13,6 +14,7 @@ proofhouse
 pyproject
 rumdl
 RUSTFLAGS
+tbhb
 tmpl
 tombi
 venv

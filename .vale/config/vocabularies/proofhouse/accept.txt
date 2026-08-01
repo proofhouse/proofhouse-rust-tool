@@ -37,7 +37,7 @@ superset
 toolchain
 [Vv]endor(ed|ing)
 [Uu]ntrusted
-Changelog
+CHANGELOG|[Cc]hangelog
 DCO
 API
 BSD
@@ -149,3 +149,4 @@ org's
 yamllint
 ISO
 [Rr]etrigger(s|ed|ing)?
+cocogitto
