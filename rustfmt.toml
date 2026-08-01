@@ -1,0 +1,9 @@
+# Both settings restate what rustfmt already resolves for an edition
+# 2024 crate. Writing them down turns a future edition bump or a shifted
+# toolchain default into a one-line diff here rather than a silent
+# reformat of the whole tree. 100 columns is the width the Rust
+# community settled on; the other languages in these repositories each
+# pick their own, and no single number spans them.
+
+style_edition = "2024"
+max_width = 100

@@ -189,12 +189,29 @@ lock-check:
 
 # --- Lint ---
 
+# Aggregator over the Rust-flavored lint sub-recipes: the rustfmt drift
+# check and actionlint. Kept apart from `lint` so someone iterating on
+# the crate can run the source-side gates without waiting on the whole
+# text-quality toolchain. Each new gate of that kind appends itself
+# here. actionlint reads YAML rather than Rust, but it belongs to the
+# same per-PR set, in the slot the Go repository gives it inside
+# `lint-go-all`.
+lint-rs-all: lint-rs-format lint-workflows
+
 # Aggregate lint gate. One entry point for contributors and CI, gaining a
-# dependency as each gate lands. Today it carries prose (vale), spelling
-# (cspell), Markdown (rumdl), config / JS / TS (biome), YAML (yamllint),
-# TOML (tombi), this file's own layout (just --fmt), and the tree-wide
-# .editorconfig baseline (editorconfig-checker).
-lint: lint-prose lint-spelling lint-markdown lint-config lint-yaml lint-toml lint-just lint-editorconfig
+# dependency as each gate lands. Today it carries the Rust gates (via
+# lint-rs-all), prose (vale), spelling (cspell), Markdown (rumdl),
+# config / JS / TS (biome), YAML (yamllint), TOML (tombi), this file's
+# own layout (just --fmt), and the tree-wide .editorconfig baseline
+# (editorconfig-checker).
+lint: lint-rs-all lint-prose lint-spelling lint-markdown lint-config lint-yaml lint-toml lint-just lint-editorconfig
+
+# Check Rust formatting against rustfmt.toml. --check reports drift and
+# exits non-zero without touching the tree, so CI never rewrites what a
+# contributor pushed; `format-rs` is the in-place twin, the same pairing
+# lint-toml and format-toml use.
+lint-rs-format:
+    cargo fmt --check
 
 # Check prose with vale against the styles in .vale.ini. The glob
 # excludes the LICENSE (canonical Apache 2.0 text), the auto-generated
@@ -297,9 +314,15 @@ lint-commit-msg:
 
 # --- Format ---
 
-# Aggregate in-place formatter. Grows per gate; carries the Markdown,
-# config, and TOML fixers plus this file's own formatter today.
-format: format-markdown format-config format-toml format-just
+# Aggregate in-place formatter. Grows per gate; carries the Rust
+# formatter plus the Markdown, config, and TOML fixers and this file's
+# own formatter today.
+format: format-rs format-markdown format-config format-toml format-just
+
+# Rewrite Rust sources through rustfmt. Style settings come from
+# rustfmt.toml at the repo root.
+format-rs:
+    cargo fmt
 
 # Format Markdown files (whitespace, list markers, code fence styles).
 # Rewrites in place. Pair with `fix-markdown` for semantic lint fixes.

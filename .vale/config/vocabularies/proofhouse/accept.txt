@@ -153,3 +153,4 @@ cocogitto
 Brewfile
 [Rr]ustup('s)?
 [Ee]ditorconfig
+rustfmt
