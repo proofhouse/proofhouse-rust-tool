@@ -66,6 +66,24 @@ actionlint_image := "docker.io/rhysd/actionlint:1.7.12@sha256:b1934ee5f1c509618f
 # evaluate at recipe-run time, not Justfile-parse time.
 actionlint := 'DOCKER_CONFIG="$(mktemp -d)" PATH="$(dirname ' + container_runtime + '):$PATH" ' + container_runtime + ' run --rm -v "$(pwd):/repo:ro" -w /repo ' + actionlint_image
 
+# gitleaks version pin, on the same Docker route as actionlint. The
+# detector rules ship inside the image, so a digest pin fixes the rule
+# set as well as the binary and two machines never disagree about what
+# counts as a secret. Renovate advances the version + digest pair below
+# through that same shared Justfile customManager.
+
+# renovate: datasource=docker depName=ghcr.io/gitleaks/gitleaks
+gitleaks_version := "v8.28.0"
+gitleaks_image := "ghcr.io/gitleaks/gitleaks:v8.28.0@sha256:cdbb7c955abce02001a9f6c9f602fb195b7fadc1e812065883f695d1eeaba854"
+
+# gitleaks invocation, carrying the same fresh-DOCKER_CONFIG and PATH
+# shims described above. Mounts the repo at /repo with -w /repo so the
+# scan reaches the .git directory rather than only the checked-out
+# files. That mount stays writable where the actionlint one is
+# read-only, the shape both sibling repositories use: git is driven
+# over a real repository here instead of a tree being read.
+gitleaks_scan := 'DOCKER_CONFIG="$(mktemp -d)" PATH="$(dirname ' + container_runtime + '):$PATH" ' + container_runtime + ' run --rm -v "$(pwd):/repo" -w /repo ' + gitleaks_image
+
 # Build metadata. `date` is the *committer date* (UTC, ISO-8601), not
 # build invocation time, so two builds of the same commit produce an
 # identical binary. `source_date_epoch` exports the same instant as a
@@ -263,6 +281,25 @@ cover-combine:
 # moved. Reads the merged tracefile, so `cover-combine` runs first.
 cover-diff base="origin/main":
     diff-cover lcov.info --compare-branch={{ base }} --fail-under=100
+
+# --- Security ---
+
+# `gitleaks git` replays the diff of every commit through the detector
+# set bundled in the pinned image, so a credential that landed in an
+# early commit and was deleted later still surfaces — a scan of the
+# checked-out files alone would walk straight past it. `--verbose`
+# names the file, line, commit, and rule behind each hit, which locates
+# the leak without a second run.
+#
+# Nothing in ci.yml mirrors this gate. GitHub's own secret scanning
+# with push protection guards the remote side and rejects a push that
+# carries a known secret pattern before it can reach a pull request, so
+# a workflow re-running these detectors would only restate a verdict
+# the platform already delivered.
+gitleaks:
+    {{ gitleaks_scan }} git --verbose .
+
+security: gitleaks
 
 # --- Dependencies ---
 
