@@ -152,3 +152,4 @@ ISO
 cocogitto
 Brewfile
 [Rr]ustup('s)?
+[Ee]ditorconfig

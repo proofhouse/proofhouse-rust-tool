@@ -91,6 +91,32 @@ repos:
         types: [toml]
         pass_filenames: false
 
+      # Whitespace conventions from .editorconfig. The builtin
+      # end-of-file-fixer / mixed-line-ending / trailing-whitespace
+      # hooks above cover part of the same ground with fixed rules;
+      # this one adds what they do not read at all — charset, the
+      # tab-versus-space indent style, and the per-glob sections
+      # .editorconfig declares. No file filter and no filenames: the
+      # checker walks the git index itself, and the exclusions live in
+      # .editorconfig-checker.json.
+      - id: editorconfig-checker
+        name: editorconfig-checker
+        entry: just lint-editorconfig
+        language: system
+        pass_filenames: false
+
+      # Nothing else reads the Justfile's layout, so its formatting
+      # drifts unless just's own formatter checks it. --check mode, to
+      # match every other formatting hook here: report the drift and
+      # fail rather than rewrite a file mid-commit. Run `just
+      # format-just` to apply.
+      - id: just-fmt
+        name: just --fmt check
+        entry: just lint-just
+        language: system
+        files: ^Justfile$
+        pass_filenames: false
+
       # Runs the recipe rather than a bare cargo call, so the hook and
       # the CI job check the same thing.
       - id: lock-check
