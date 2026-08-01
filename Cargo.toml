@@ -89,3 +89,26 @@ impl_trait_in_params = "allow"
 # any mod.rs that appears later; keeping both would leave no legal
 # layout at all.
 self_named_module_files = "allow"
+
+# Rustdoc's own diagnostics, every one of them marking documentation
+# that renders wrong — a link resolving nowhere, an example rustdoc
+# cannot parse, an HTML tag left open, a backtick with no partner. Half
+# the set only warns by default and the docs build succeeds anyway, so
+# the levels move up to deny and the failure lands where the mistake is.
+#
+# Three stable entries stay out. missing_docs would make a doc comment
+# mandatory on every public item, and here they go where they explain
+# something rather than everywhere. private_doc_tests rejects examples
+# on private items, which is often where an example teaches the most.
+# missing_doc_code_examples is unstable and a release toolchain declines
+# to load it at all.
+[lints.rustdoc]
+bare_urls = "deny"
+broken_intra_doc_links = "deny"
+invalid_codeblock_attributes = "deny"
+invalid_html_tags = "deny"
+invalid_rust_codeblocks = "deny"
+missing_crate_level_docs = "deny"
+private_intra_doc_links = "deny"
+redundant_explicit_links = "deny"
+unescaped_backticks = "deny"
