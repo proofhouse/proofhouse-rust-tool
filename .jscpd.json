@@ -1,0 +1,6 @@
+{
+  "threshold": 0,
+  "minTokens": 50,
+  "format": ["rust"],
+  "ignore": ["target/**", ".vale/**", "tmp/**", "CHANGELOG.md"]
+}

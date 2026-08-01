@@ -139,6 +139,18 @@ repos:
         files: (^|/)Cargo\.toml$
         pass_filenames: false
 
+      # A token scan with no build behind it, so this one keeps the
+      # company of the manifest scan above rather than the two push
+      # hooks. A clone belongs to a pair of files and not to either one
+      # of them, which is why the hook hands over no filenames and lets
+      # the recipe walk the sources itself.
+      - id: jscpd
+        name: jscpd
+        entry: just lint-dup-code
+        language: system
+        types: [rust]
+        pass_filenames: false
+
       # Whitespace conventions from .editorconfig. The builtin
       # end-of-file-fixer / mixed-line-ending / trailing-whitespace
       # hooks above cover part of the same ground with fixed rules;

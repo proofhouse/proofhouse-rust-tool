@@ -196,13 +196,13 @@ lock-check:
 
 # Aggregator over the Rust-flavored lint sub-recipes: the rustfmt drift
 # check, clippy, the documentation build, the unused-dependency scan,
-# and actionlint. Kept apart from `lint` so someone iterating on the
-# crate can run the source-side gates without waiting on the whole
-# text-quality toolchain. Each new gate of that kind appends itself
-# here. actionlint reads YAML rather than Rust, but it belongs to the
-# same per-PR set, in the slot the Go repository gives it inside
-# `lint-go-all`.
-lint-rs-all: lint-rs-format lint-clippy lint-docs lint-machete lint-workflows
+# the duplication scan, and actionlint. Kept apart from `lint` so
+# someone iterating on the crate can run the source-side gates without
+# waiting on the whole text-quality toolchain. Each new gate of that
+# kind appends itself here. actionlint reads YAML rather than Rust, but
+# it belongs to the same per-PR set, in the slot the Go repository
+# gives it inside `lint-go-all`.
+lint-rs-all: lint-rs-format lint-clippy lint-docs lint-machete lint-dup-code lint-workflows
 
 # Aggregate lint gate. One entry point for contributors and CI, gaining a
 # dependency as each gate lands. Today it carries the Rust gates (via
@@ -249,6 +249,24 @@ lint-docs:
 # no gate should do to a contributor's tree.
 lint-machete:
     cargo machete
+
+# Report code that appears more than once. jscpd hashes a sliding
+# window of tokens rather than lines, so renaming the identifiers in a
+# copy or reflowing its layout does not hide it. The window is fifty
+# tokens, upstream's default and roughly a dozen lines of Rust; below
+# that, ordinary idiom starts matching itself. .jscpd.json puts the
+# tolerance at zero percent, so whatever the run reports fails the
+# gate, matching the stance the Python repositories take toward
+# pylint's similarity checker. That file also holds the scan to Rust
+# sources. Left open it reads the workflow files and .vale.ini, where
+# a repeated block is how the format reads rather than a defect. Four
+# small modules have little to copy between them, and the gate stays
+# regardless: the sibling library runs the same one, and a run that
+# finds nothing puts that on record instead of leaving it assumed.
+# --no-tips drops the donation and product lines the tool prints after
+# every scan.
+lint-dup-code:
+    jscpd --no-tips .
 
 # Check prose with vale against the styles in .vale.ini. The glob
 # excludes the LICENSE (canonical Apache 2.0 text), the auto-generated
