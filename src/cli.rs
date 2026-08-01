@@ -11,7 +11,7 @@ use std::io;
 
 use clap::{Parser, Subcommand};
 
-use crate::buildmeta;
+use crate::buildmeta::BuildInfo;
 
 /// Reference CLI for the Proofhouse Rust tool reference repository.
 #[derive(Parser, Debug)]
@@ -29,21 +29,23 @@ enum Command {
     Version,
 }
 
-/// Run the parsed command, writing its output to `out`.
+/// Run the parsed command against the build metadata `info`, writing its
+/// output to `out`.
+///
+/// The caller passes the metadata in rather than this function reading it, so
+/// the rendering answers for whatever stamp it receives and not only for the
+/// stamp this binary carries.
 ///
 /// # Errors
 ///
 /// Returns any error raised while writing to `out`.
-pub fn run(cli: &Cli, out: &mut impl io::Write) -> io::Result<()> {
+pub fn run(cli: &Cli, info: &BuildInfo<'_>, out: &mut impl io::Write) -> io::Result<()> {
     match cli.command {
-        Command::Version => {
-            let info = buildmeta::get();
-            writeln!(
-                out,
-                "proofhouse-rust-tool {}\ncommit: {}\ndate:   {}",
-                info.version, info.commit, info.date
-            )
-        }
+        Command::Version => writeln!(
+            out,
+            "proofhouse-rust-tool {}\ncommit: {}\ndate:   {}",
+            info.version, info.commit, info.date
+        ),
     }
 }
 
@@ -67,11 +69,11 @@ mod tests {
     fn version_renders_three_stamped_lines() {
         let cli = Cli::try_parse_from(["proofhouse-rust-tool", "version"])
             .expect("version subcommand parses");
+        let info = buildmeta::get();
         let mut out = Vec::new();
-        run(&cli, &mut out).expect("writing to a vec succeeds");
+        run(&cli, &info, &mut out).expect("writing to a vec succeeds");
         let text = String::from_utf8(out).expect("output is utf-8");
 
-        let info = buildmeta::get();
         assert_eq!(
             text,
             format!(

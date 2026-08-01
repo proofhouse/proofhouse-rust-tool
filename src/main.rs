@@ -13,6 +13,7 @@ use std::process::ExitCode;
 
 use clap::Parser as _;
 
+use proofhouse_rust_tool::buildmeta;
 use proofhouse_rust_tool::cli::{self, Cli};
 
 // The one function no test can call. It reads the real argv and hands an exit
@@ -23,8 +24,9 @@ use proofhouse_rust_tool::cli::{self, Cli};
 #[cfg_attr(coverage_nightly, coverage(off))]
 fn main() -> ExitCode {
     let cli = Cli::parse();
+    let info = buildmeta::get();
     let mut out = io::stdout().lock();
-    match cli::run(&cli, &mut out) {
+    match cli::run(&cli, &info, &mut out) {
         Ok(()) => ExitCode::SUCCESS,
         Err(err) => {
             // A write to stderr that itself fails leaves nowhere to report

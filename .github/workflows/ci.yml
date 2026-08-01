@@ -154,6 +154,14 @@ jobs:
           - ubuntu-24.04-arm
           - macos-15
           - windows-2025
+    # The property suite draws this many inputs per property, four times
+    # what it draws when nothing sets the variable. A wider search costs
+    # seconds on a suite this small, and the run someone waits on locally
+    # is not the one worth widening. The coverage matrix leaves the count
+    # alone: a branch turns up in the first handful of draws or not at
+    # all, so more of them buy wall-clock rather than coverage.
+    env:
+      PROPTEST_CASES: "1024"
     steps:
       # harden-runner only supports Linux runners; the macOS and Windows
       # slots run without it.
