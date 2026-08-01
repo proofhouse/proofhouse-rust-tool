@@ -299,7 +299,26 @@ cover-diff base="origin/main":
 gitleaks:
     {{ gitleaks_scan }} git --verbose .
 
-security: gitleaks
+# One run of cargo deny puts four questions to the resolved dependency
+# graph. Each version is graded against the RustSec advisory database,
+# the feed that answers for Rust crates where pip-audit answers for
+# Python packages in the sibling repositories. Every license in the
+# transitive tree has to appear on the allow-list, which is the
+# complement of what lint-reuse checks: that recipe reads the headers
+# this repository writes, and this one reads what arrives from
+# elsewhere. A crate resolving to two versions at once fails, and so
+# does one resolving from anywhere but crates.io. Policy lives in
+# deny.toml; the recipe only says when the questions get asked.
+audit:
+    cargo deny check
+
+# One entry point for the scanners, reached before a push rather than
+# on every commit. The history sweep replays old diffs for credentials
+# and the dependency check grades what the manifest pulls in against
+# the advisory database and the policy beside it. Listing the members
+# flat rather than chaining them leaves a failure attributable to
+# whichever run raised it.
+security: gitleaks audit
 
 # --- Dependencies ---
 

@@ -31,6 +31,7 @@ path = [
   "Cargo.toml",
   "clippy.toml",
   "cog.toml",
+  "deny.toml",
   "Justfile",
   "rust-toolchain.toml",
   "rustfmt.toml",
