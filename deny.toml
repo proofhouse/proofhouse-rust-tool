@@ -20,10 +20,12 @@
 yanked = "deny"
 unmaintained = "all"
 unsound = "all"
-# Nothing is silenced today. This file has no field for the reasoning
-# behind an entry, so a future one arrives with a `#` comment naming
-# the advisory and saying why the exposure was accepted, the shape the
-# clippy allow list in Cargo.toml already follows.
+# Nothing is silenced today. An entry here may carry a `reason` string,
+# which the checker marks out in the diagnostic it renders for that
+# entry. The `#` comment above the line carries the justification
+# either way: the advisory named, and the grounds for accepting the
+# exposure. Every exception this repository grants reads that way, the
+# clippy allow list in Cargo.toml included.
 ignore = []
 # An ignore entry matching nothing in the graph fails rather than
 # warning. A silenced advisory then cannot outlive the dependency that
